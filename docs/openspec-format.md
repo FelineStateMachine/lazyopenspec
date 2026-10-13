@@ -4,7 +4,6 @@ Source of truth: the `@fission-ai/openspec` npm package (v1.4.1, Node CLI, `dist
 Everything below was confirmed by reading `dist/` and running the CLI against the fixture.
 
 Fixture repo: `testdata/fixture` (copied without its git history).
-Full raw CLI outputs: `fixture/cli-samples/*.json` (committed).
 
 ---
 
