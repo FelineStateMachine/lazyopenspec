@@ -10,7 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/dami/lazyopenspec/internal/spec"
+	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
 )
 
 func (m Model) render() string {

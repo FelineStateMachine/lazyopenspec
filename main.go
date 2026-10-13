@@ -10,8 +10,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dami/lazyopenspec/internal/spec"
-	"github.com/dami/lazyopenspec/internal/ui"
+	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
+	"github.com/FelineStateMachine/lazyopenspec/internal/ui"
 )
 
 var version = "dev"

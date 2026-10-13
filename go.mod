@@ -1,4 +1,4 @@
-module github.com/dami/lazyopenspec
+module github.com/FelineStateMachine/lazyopenspec
 
 go 1.27.1
 

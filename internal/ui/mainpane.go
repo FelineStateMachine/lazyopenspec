@@ -9,8 +9,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
 
-	"github.com/dami/lazyopenspec/internal/gitx"
-	"github.com/dami/lazyopenspec/internal/spec"
+	"github.com/FelineStateMachine/lazyopenspec/internal/gitx"
+	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
 )
 
 // target is the item shown in the main pane.
