@@ -266,7 +266,7 @@ So `add-workspace-invites` (no proposal.md) appears in `list --json` but not in 
 inherent: any change before its specs exist fails validation. `add-workspace-invites` is not validated at all (no proposal.md).
 All 4 main specs and the other 3 changes pass.
 
-## 9. JSON output shapes (trimmed; full files in `fixture/cli-samples/`)
+## 9. JSON output shapes (trimmed)
 
 `openspec list --json` (only `changes`; `{"changes": []}` when empty):
 ```json
