@@ -249,8 +249,8 @@ func TestFingerprintChanged(t *testing.T) {
 		}
 	}
 	for _, p := range []string{dir, filepath.Join(dir, "changes"), filepath.Join(dir, "changes", "archive")} {
-		if _, ok := fp[p]; ok {
-			t.Errorf("Scan includes directory %s", p)
+		if _, ok := fp[p]; !ok {
+			t.Errorf("Scan missing directory %s", p)
 		}
 	}
 	if got := fp.Changed(Scan(dir)); len(got) != 0 {
@@ -289,6 +289,13 @@ func TestFingerprintChanged(t *testing.T) {
 			}
 			return []string{p}
 		}},
+		{"new empty dir", func(t *testing.T) []string {
+			p := filepath.Join(dir, "changes", "scaffolded")
+			if err := os.Mkdir(p, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			return []string{p}
+		}},
 		{"rename dir (archive)", func(t *testing.T) []string {
 			from := filepath.Join(dir, "changes", "add-task-search")
 			to := filepath.Join(dir, "changes", "archive", "2026-10-13-add-task-search")
@@ -296,7 +303,8 @@ func TestFingerprintChanged(t *testing.T) {
 				t.Fatal(err)
 			}
 			var want []string
-			for _, rel := range []string{".openspec.yaml", "proposal.md", "specs/search/spec.md", "specs/task-management/spec.md"} {
+			for _, rel := range []string{"", ".openspec.yaml", "proposal.md", "specs", "specs/search", "specs/search/spec.md",
+				"specs/task-management", "specs/task-management/spec.md"} {
 				want = append(want, filepath.Join(from, rel), filepath.Join(to, rel))
 			}
 			return want
