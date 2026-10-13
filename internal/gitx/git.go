@@ -5,6 +5,9 @@ package gitx
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -27,9 +30,16 @@ func run(dir string, args ...string) (string, error) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
-	var out bytes.Buffer
+	// Never take .git/index.lock: status/diff would otherwise refresh the
+	// index and make an agent's concurrent `git add`/`git commit` fail.
+	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0")
+	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
+	cmd.Stderr = &errOut
 	err := cmd.Run()
+	if err != nil && errOut.Len() > 0 {
+		err = fmt.Errorf("%w: %s", err, strings.TrimSpace(errOut.String()))
+	}
 	return out.String(), err
 }
 
@@ -62,8 +72,8 @@ func Read(root, openspecDir string) Status {
 			continue
 		}
 		code, path := e[:2], e[3:]
-		if code[0] == 'R' || code[0] == 'C' {
-			i++ // -z puts the rename source in the next field
+		if strings.ContainsAny(code, "RC") {
+			i++ // -z puts the rename/copy source in the next field
 		}
 		s.Dirty[filepath.Join(top, filepath.FromSlash(path))] = code
 	}
@@ -73,13 +83,19 @@ func Read(root, openspecDir string) Status {
 // Diff returns the working-tree diff of path against HEAD. Untracked files
 // are diffed against /dev/null so new artifacts show up in full.
 func Diff(root, path string, untracked bool) (string, error) {
+	if !untracked {
+		if _, err := run(root, "rev-parse", "--verify", "--quiet", "HEAD"); err != nil {
+			untracked = true // no commits yet: show the whole file as added
+		}
+	}
 	if untracked {
-		out, err := run(root, "diff", "--no-color", "--no-index", "--", "/dev/null", path)
+		out, err := run(root, "diff", "--no-color", "--no-ext-diff", "--no-index", "--", "/dev/null", path)
 		// --no-index exits 1 when files differ.
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
 			err = nil
 		}
 		return out, err
 	}
-	return run(root, "diff", "--no-color", "HEAD", "--", path)
+	return run(root, "diff", "--no-color", "--no-ext-diff", "HEAD", "--", path)
 }

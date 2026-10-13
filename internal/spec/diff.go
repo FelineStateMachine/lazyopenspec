@@ -51,12 +51,17 @@ func Diff(prev, next *Snapshot, now time.Time) []Event {
 
 	prevChanges := indexChanges(prev.Changes)
 	nextChanges := indexChanges(next.Changes)
-	// Only archive entries that are new in this snapshot can explain a change
-	// disappearing; older archives may reuse the same name.
+	// Map each archived name to the entry that best explains an active change
+	// disappearing: prefer one new in this snapshot (older archives may reuse
+	// the name), else the newest, which covers copy-then-delete archiving
+	// where the copy landed in an earlier snapshot.
 	prevArchive := indexChanges(prev.Archive)
 	archivedNames := map[string]string{}
-	for _, c := range next.Archive {
-		if _, old := prevArchive[c.ID]; !old {
+	for _, c := range next.Archive { // newest first
+		cur, seen := archivedNames[c.Name]
+		_, curOld := prevArchive[cur]
+		_, isOld := prevArchive[c.ID]
+		if !seen || (curOld && !isOld) {
 			archivedNames[c.Name] = c.ID
 		}
 	}

@@ -338,3 +338,21 @@ func TestScanMissingDir(t *testing.T) {
 		t.Errorf("Changed(fixture -> empty) = %d paths, want %d", len(back), len(full))
 	}
 }
+
+// Archiving by copy-then-delete: the archive copy shows up in one snapshot
+// while the change is still active, and the change vanishes in the next.
+func TestDiffArchiveByCopyThenDelete(t *testing.T) {
+	root := copyFixture(t)
+	changes := filepath.Join(root, "openspec", "changes")
+	if err := os.CopyFS(filepath.Join(changes, "archive", "2026-10-13-add-due-dates"), os.DirFS(filepath.Join(changes, "add-due-dates"))); err != nil {
+		t.Fatal(err)
+	}
+	prev := mustLoad(t, root)
+	if err := os.RemoveAll(filepath.Join(changes, "add-due-dates")); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	assertEvents(t, Diff(prev, mustLoad(t, root), now), now, []ev{
+		{EventArchived, ItemArchive, "2026-10-13-add-due-dates", "", "archived"},
+	})
+}

@@ -55,7 +55,8 @@ type (
 	}
 	gitMsg  gitx.Status
 	diffMsg struct {
-		key  string
+		path string
+		key  string // path + mtime + git status the diff was taken at
 		text string
 		err  error
 	}
@@ -85,6 +86,8 @@ type Model struct {
 	err      error
 	git      gitx.Status
 	gitAt    time.Time
+	gitBusy  bool         // a git read is in flight
+	gitAgain bool         // another read was requested while busy
 	events   []spec.Event // newest first
 	now      time.Time
 	lastSeen time.Time // time of the most recent event
@@ -95,8 +98,8 @@ type Model struct {
 	mainKey  string            // identity of the content currently in vp
 	viewKey  string            // target/tab/mode shown in vp, for scroll memory
 	renderer *mdRenderer
-	diffs    map[string]diffMsg
-	diffReq  map[string]bool
+	diffs    map[string]diffMsg // latest diff per path
+	diffReq  map[string]bool    // diff keys currently being fetched
 }
 
 // New constructs the root model.
@@ -122,7 +125,7 @@ func New(opts Options) Model {
 
 // Init starts the first load, git read, and poll loop.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, m.scanCmd(), m.gitCmd())
+	return tea.Batch(tea.RequestBackgroundColor, m.scanCmd())
 }
 
 func (m Model) scanCmd() tea.Cmd {
@@ -138,7 +141,14 @@ func (m Model) loadCmd() tea.Cmd {
 	}
 }
 
-func (m Model) gitCmd() tea.Cmd {
+// refreshGit starts a git read unless one is in flight, in which case it
+// queues exactly one more so results never arrive out of order.
+func (m *Model) refreshGit() tea.Cmd {
+	if m.gitBusy {
+		m.gitAgain = true
+		return nil
+	}
+	m.gitBusy, m.gitAt = true, m.now
 	root := m.opts.Root
 	dir := filepath.Join(root, spec.DirName)
 	return func() tea.Msg { return gitMsg(gitx.Read(root, dir)) }
@@ -154,6 +164,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		m.clampAll()
 
 	case tea.BackgroundColorMsg:
 		m.theme = newTheme(msg.IsDark())
@@ -174,22 +185,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.now = time.Time(msg)
 		cmds = append(cmds, m.scanCmd())
 		if m.now.Sub(m.gitAt) >= gitEvery {
-			m.gitAt = m.now
-			cmds = append(cmds, m.gitCmd())
+			cmds = append(cmds, m.refreshGit())
 		}
 
 	case loadedMsg:
 		m.loading = false
 		m.err = msg.err
-		if msg.err == nil {
+		if msg.err != nil {
+			m.fp = nil // retry on the next poll even if nothing else changes
+		} else {
 			cmds = append(cmds, m.applySnapshot(msg.snap)...)
 		}
 
 	case gitMsg:
 		m.git = gitx.Status(msg)
+		m.gitBusy = false
+		if m.gitAgain {
+			m.gitAgain = false
+			cmds = append(cmds, m.refreshGit())
+		}
 
 	case diffMsg:
-		m.diffs[msg.key] = msg
+		m.diffs[msg.path] = msg
 		delete(m.diffReq, msg.key)
 		m.mainKey = ""
 
@@ -246,10 +263,7 @@ func (m *Model) applySnapshot(next *spec.Snapshot) []tea.Cmd {
 		m.followEvent(events[len(events)-1])
 	}
 	m.clampAll()
-	if prev != nil {
-		return []tea.Cmd{m.gitCmd()}
-	}
-	return nil
+	return []tea.Cmd{m.refreshGit()}
 }
 
 // followEvent moves the selection to the item an event refers to.
@@ -428,7 +442,7 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		m.clampAll()
 	case "r":
 		m.loading = true
-		return tea.Batch(m.loadCmd(), m.gitCmd())
+		return tea.Batch(m.loadCmd(), m.refreshGit())
 	case "c":
 		m.events = nil
 		m.cursors[panelActivity] = 0

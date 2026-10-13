@@ -40,7 +40,11 @@ func (m Model) render() string {
 	for len(lines) < m.height-footerRows {
 		lines = append(lines, "")
 	}
-	return strings.Join(append(lines, m.renderFooter()), "\n")
+	lines = append(lines, m.renderFooter())
+	for i, l := range lines {
+		lines[i] = ansi.Truncate(l, m.width, "")
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (m Model) renderHeader() string {

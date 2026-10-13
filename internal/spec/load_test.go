@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -405,4 +406,39 @@ func TestFindRoot(t *testing.T) {
 			t.Errorf("FindRoot(link) = %q, %v; want %q", got, err, root)
 		}
 	})
+}
+
+// A FIFO in a change dir must not block Load: reading it would hang forever.
+func TestLoadIgnoresFIFO(t *testing.T) {
+	root := copyFixture(t)
+	if err := syscall.Mkfifo(filepath.Join(root, "openspec", "changes", "add-due-dates", "pipe.md"), 0o644); err != nil {
+		t.Skip("mkfifo unsupported:", err)
+	}
+	done := make(chan *Snapshot, 1)
+	go func() { done <- mustLoad(t, root) }()
+	select {
+	case s := <-done:
+		if len(s.Changes) != 5 {
+			t.Errorf("Changes = %v, want the 5 fixture changes", changeIDs(s.Changes))
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Load blocked on a FIFO")
+	}
+}
+
+// One unreadable directory hides only its own contents.
+func TestLoadSkipsUnreadableDirs(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	root := copyFixture(t)
+	locked := filepath.Join(root, "openspec", "specs", "notifications")
+	if err := os.Chmod(locked, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o755) })
+	s := mustLoad(t, root)
+	if len(s.Specs) != 3 || len(s.Changes) != 5 {
+		t.Errorf("Specs = %d, Changes = %d; want 3 readable specs and 5 changes", len(s.Specs), len(s.Changes))
+	}
 }

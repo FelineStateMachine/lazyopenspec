@@ -83,12 +83,9 @@ func loadSpecs(dir string) ([]Spec, error) {
 	var specs []Spec
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return err
+			return skip(d) // unreadable or vanished mid-walk; show the rest
 		}
-		if d.IsDir() || d.Name() != "spec.md" {
+		if !d.Type().IsRegular() || d.Name() != "spec.md" {
 			return nil
 		}
 		rel, err := filepath.Rel(dir, filepath.Dir(path))
@@ -156,19 +153,22 @@ func loadChange(dir string, archived bool) (Change, error) {
 
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return err
+			return skip(d) // unreadable or vanished mid-walk; show the rest
 		}
-		if d.IsDir() {
-			return nil
+		if !d.Type().IsRegular() {
+			return nil // directories, and FIFOs/sockets that would block a read
 		}
 		rel, err := filepath.Rel(dir, path)
 		if err != nil {
-			return err
+			return nil
 		}
 		rel = filepath.ToSlash(rel)
+		if rel != ".openspec.yaml" && !strings.HasSuffix(rel, ".md") {
+			if fi, err := d.Info(); err == nil && fi.ModTime().After(c.ModTime) {
+				c.ModTime = fi.ModTime()
+			}
+			return nil
+		}
 		src, mod, err := readFile(path)
 		if err != nil {
 			return nil
@@ -178,9 +178,6 @@ func loadChange(dir string, archived bool) (Change, error) {
 		}
 		if rel == ".openspec.yaml" {
 			c.Schema = ParseSchema(src)
-			return nil
-		}
-		if !strings.HasSuffix(rel, ".md") {
 			return nil
 		}
 		a := Artifact{Kind: classify(rel), Rel: rel, Path: path, ModTime: mod, Content: src}
@@ -203,6 +200,14 @@ func loadChange(dir string, archived bool) (Change, error) {
 		return a.Rel < b.Rel
 	})
 	return c, err
+}
+
+// skip tells WalkDir to continue past an entry it could not read.
+func skip(d fs.DirEntry) error {
+	if d != nil && d.IsDir() {
+		return fs.SkipDir
+	}
+	return nil
 }
 
 func classify(rel string) ArtifactKind {

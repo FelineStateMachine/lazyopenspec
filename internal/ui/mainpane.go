@@ -147,7 +147,11 @@ func (m *Model) syncMain() tea.Cmd {
 	dirty := m.git.Dirty[tb.path]
 
 	viewKey := fmt.Sprintf("%s|%s|%t", t.key(), tb.key, m.diffMode)
-	contentKey := fmt.Sprintf("%s|%d|%s|%dx%d|%t", viewKey, tb.mod.UnixNano(), dirty, w, vpH, m.theme.isDark)
+	state := "loading"
+	if m.snap != nil {
+		state = fmt.Sprint(m.snap.Exists)
+	}
+	contentKey := fmt.Sprintf("%s|%d|%s|%dx%d|%t|%s", viewKey, tb.mod.UnixNano(), dirty, w, vpH, m.theme.isDark, state)
 	if contentKey == m.mainKey && m.vp.Width() == w && m.vp.Height() == vpH {
 		return nil
 	}
@@ -188,21 +192,26 @@ func (m *Model) diffContent(tb tab, dirty string) (string, tea.Cmd) {
 		return m.theme.muted.Render("\n  No uncommitted changes to " + m.relPath(tb.path) + "."), nil
 	}
 	key := fmt.Sprintf("%s|%d|%s", tb.path, tb.mod.UnixNano(), dirty)
-	if d, ok := m.diffs[key]; ok {
-		if d.err != nil {
-			return m.theme.remSt.Render("\n  git diff failed: " + d.err.Error()), nil
+	prev, havePrev := m.diffs[tb.path]
+	var cmd tea.Cmd
+	if (!havePrev || prev.key != key) && !m.diffReq[key] {
+		m.diffReq[key] = true
+		root, path := m.opts.Root, tb.path
+		untracked := dirty == "??"
+		cmd = func() tea.Msg {
+			text, err := gitx.Diff(root, path, untracked)
+			return diffMsg{path: path, key: key, text: text, err: err}
 		}
-		return m.colorDiff(d.text), nil
 	}
-	if m.diffReq[key] {
-		return m.theme.muted.Render("\n  Loading diff…"), nil
-	}
-	m.diffReq[key] = true
-	root, path := m.opts.Root, tb.path
-	untracked := dirty == "??"
-	return m.theme.muted.Render("\n  Loading diff…"), func() tea.Msg {
-		text, err := gitx.Diff(root, path, untracked)
-		return diffMsg{key: key, text: text, err: err}
+	switch {
+	case !havePrev:
+		// Nothing to show yet. A stale diff for the same file is better than a
+		// placeholder: it keeps the scroll position while the new one loads.
+		return m.theme.muted.Render("\n  Loading diff…"), cmd
+	case prev.err != nil:
+		return m.theme.remSt.Render("\n  git diff failed: " + prev.err.Error()), cmd
+	default:
+		return m.colorDiff(prev.text), cmd
 	}
 }
 
@@ -283,7 +292,11 @@ func (m Model) changeHeader(c spec.Change, w int) []string {
 	line1 := spread(" "+th.bold.Render(c.Name), th.muted.Render(right)+" ", w)
 
 	summary := c.Summary
-	if summary == "" {
+	switch {
+	case summary != "":
+	case c.Has(spec.KindProposal):
+		summary = "(proposal is empty so far)"
+	default:
 		summary = "(no proposal yet)"
 	}
 	line2 := " " + th.muted.Render(summary)
@@ -442,6 +455,9 @@ func (r *mdRenderer) render(path string, mod time.Time, src string, width int, s
 		)
 		if err != nil {
 			return src
+		}
+		if len(r.renderers) >= 4 { // one per width; drop old sizes after resizes
+			clear(r.renderers)
 		}
 		r.renderers[rkey] = tr
 	}
