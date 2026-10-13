@@ -70,8 +70,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, "lazyopenspec:", err)
 		os.Exit(1)
 	}
+	display := spec.DisplayRoot(start, root)
 
-	p := tea.NewProgram(ui.New(ui.Options{Root: root, Interval: *interval, Follow: *follow, Portrait: portraitMode}))
+	p := tea.NewProgram(ui.New(ui.Options{Root: root, Display: display, Interval: *interval, Follow: *follow, Portrait: portraitMode}))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "lazyopenspec:", err)
 		os.Exit(1)

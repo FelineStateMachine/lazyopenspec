@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -405,6 +406,36 @@ func TestFindRoot(t *testing.T) {
 			t.Errorf("FindRoot(link) = %q, %v; want %q", got, err, root)
 		}
 	})
+
+	t.Run("display keeps a symlinked root as typed", func(t *testing.T) {
+		link := filepath.Join(base, "repo-link")
+		if err := os.Symlink(root, link); err != nil {
+			t.Skip("symlinks unsupported:", err)
+		}
+		start := filepath.Join(link, "src", "pkg")
+		got, err := FindRoot(start)
+		if err != nil || got != root {
+			t.Fatalf("FindRoot(%q) = %q, %v; want %q", start, got, err, root)
+		}
+		if d := DisplayRoot(start, got); d != link {
+			t.Errorf("DisplayRoot = %q, want %q", d, link)
+		}
+		if d := DisplayRoot(deep, got); d != root {
+			t.Errorf("DisplayRoot without symlinks = %q, want %q", d, root)
+		}
+	})
+}
+
+func TestArchiveName(t *testing.T) {
+	for id, want := range map[string]string{
+		"2026-10-13-add-auth": "add-auth",
+		"add-auth":            "add-auth",
+		"2026-10-13":          "2026-10-13",
+	} {
+		if got := ArchiveName(id); got != want {
+			t.Errorf("ArchiveName(%q) = %q, want %q", id, got, want)
+		}
+	}
 }
 
 // One unreadable directory hides only its own contents.
@@ -421,5 +452,30 @@ func TestLoadSkipsUnreadableDirs(t *testing.T) {
 	s := mustLoad(t, root)
 	if len(s.Specs) != 3 || len(s.Changes) != 5 {
 		t.Errorf("Specs = %d, Changes = %d; want 3 readable specs and 5 changes", len(s.Specs), len(s.Changes))
+	}
+}
+
+// Two changes archived the same day: the one edited last comes first.
+func TestArchiveSortsNewestFirstWithinADay(t *testing.T) {
+	root := copyFixture(t)
+	archive := filepath.Join(root, "openspec", "changes", "archive")
+	older := filepath.Join(archive, "2026-10-13-zz-older", "tasks.md")
+	newer := filepath.Join(archive, "2026-10-13-aa-newer", "tasks.md")
+	writeFile(t, older, "- [x] done\n")
+	writeFile(t, newer, "- [x] done\n")
+	past := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(older, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(filepath.Dir(older), past, past); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, c := range mustLoad(t, root).Archive {
+		got = append(got, c.ID)
+	}
+	want := []string{"2026-10-13-aa-newer", "2026-10-13-zz-older", "2026-09-23-add-email-notifications", "2026-08-19-add-user-auth"}
+	if !slices.Equal(got, want) {
+		t.Errorf("archive order = %v, want %v", got, want)
 	}
 }

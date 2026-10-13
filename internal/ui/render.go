@@ -56,7 +56,11 @@ func (m Model) render() string {
 func (m Model) renderHeader() string {
 	th := m.theme
 	sep := th.subtle.Render("  │  ")
-	left := []string{th.title.Render(" lazyopenspec"), th.bold.Render(tildePath(m.opts.Root))}
+	shown := m.opts.Display
+	if shown == "" {
+		shown = m.opts.Root
+	}
+	left := []string{th.title.Render(" lazyopenspec"), th.bold.Render(tildePath(shown))}
 	if m.git.Branch != "" {
 		branch := " " + m.git.Branch
 		if n := len(m.git.Dirty); n > 0 {
@@ -282,7 +286,11 @@ func (m Model) renderRow(p panelID, i, w int, sel, active bool) string {
 		icon, st := eventIcon(th, e.Kind)
 		pt.put(st, icon+" ")
 		idW := clamp(w/3, 8, 24)
-		pt.put(nameSt, fmt.Sprintf("%-*s", idW, ansi.Truncate(e.ID, idW, "…"))+" ")
+		id := e.ID
+		if e.Item == spec.ItemArchive {
+			id = spec.ArchiveName(id)
+		}
+		pt.put(nameSt, fmt.Sprintf("%-*s", idW, ansi.Truncate(id, idW, "…"))+" ")
 		pt.put(th.muted, e.Detail)
 	}
 	return pt.String()

@@ -16,14 +16,43 @@ const DirName = "openspec"
 
 var archivePrefixRe = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2})-(.+)$`)
 
+// DisplayRoot returns root as reached from start without resolving symlinks
+// (e.g. /tmp/repo rather than /private/tmp/repo), for showing to the user.
+// It falls back to root when no unresolved ancestor of start resolves to it.
+func DisplayRoot(start, root string) string {
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		return root
+	}
+	for dir := abs; ; dir = filepath.Dir(dir) {
+		if real, err := filepath.EvalSymlinks(dir); err == nil && real == root {
+			return dir
+		}
+		if filepath.Dir(dir) == dir {
+			return root
+		}
+	}
+}
+
+// ArchiveName strips the YYYY-MM-DD- prefix from an archived change's ID.
+func ArchiveName(id string) string {
+	if m := archivePrefixRe.FindStringSubmatch(id); m != nil {
+		return m[2]
+	}
+	return id
+}
+
 // FindRoot walks up from start looking for a directory that contains
-// openspec/. It returns start itself when no ancestor has one.
+// openspec/. It returns start itself when no ancestor has one. The result has
+// symlinks resolved so it matches the paths git reports; DisplayRoot gives
+// the same directory as the user would write it.
 func FindRoot(start string) (string, error) {
 	abs, err := filepath.Abs(start)
 	if err != nil {
 		return "", err
 	}
-	// Resolve symlinks so paths match what git reports (e.g. /tmp on macOS).
+	// Resolve first so the walk goes up the real tree, not a symlink's
+	// parents, and so paths match what git reports (/tmp on macOS).
 	if real, err := filepath.EvalSymlinks(abs); err == nil {
 		abs = real
 	}
@@ -75,7 +104,17 @@ func Load(root string) (*Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Slice(s.Archive, func(i, j int) bool { return s.Archive[i].ID > s.Archive[j].ID })
+	// Newest first: by archive date, then by last edit within a day.
+	sort.Slice(s.Archive, func(i, j int) bool {
+		a, b := s.Archive[i], s.Archive[j]
+		if a.ArchivedOn != b.ArchivedOn {
+			return a.ArchivedOn > b.ArchivedOn
+		}
+		if !a.ModTime.Equal(b.ModTime) {
+			return a.ModTime.After(b.ModTime)
+		}
+		return a.ID > b.ID
+	})
 	return s, nil
 }
 

@@ -41,7 +41,8 @@ const (
 
 // Options configure the UI.
 type Options struct {
-	Root     string
+	Root     string // repository root, symlinks resolved
+	Display  string // root as the user typed it, for the header
 	Interval time.Duration
 	Follow   bool
 	Portrait PortraitMode // stack panels above the main pane: auto, always, never

@@ -83,6 +83,10 @@ func Read(root, openspecDir string) Status {
 // Diff returns the working-tree diff of path against HEAD. Untracked files
 // are diffed against /dev/null so new artifacts show up in full.
 func Diff(root, path string, untracked bool) (string, error) {
+	// Relative paths keep the diff header short (a/openspec/...).
+	if rel, err := filepath.Rel(root, path); err == nil && !strings.HasPrefix(rel, "..") {
+		path = rel
+	}
 	if !untracked {
 		if _, err := run(root, "rev-parse", "--verify", "--quiet", "HEAD"); err != nil {
 			untracked = true // no commits yet: show the whole file as added
