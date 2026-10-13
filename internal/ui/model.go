@@ -374,15 +374,6 @@ func (m *Model) clampAll() {
 	}
 }
 
-func (m *Model) moveCursor(p panelID, delta int) {
-	if p >= numLists {
-		return
-	}
-	m.cursors[p] += delta
-	m.clampAll()
-	m.lastList = p
-}
-
 func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	if m.showHelp {
 		m.showHelp = false

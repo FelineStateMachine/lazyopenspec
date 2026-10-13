@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -14,7 +15,20 @@ import (
 	"github.com/FelineStateMachine/lazyopenspec/internal/ui"
 )
 
-var version = "dev"
+// version is set by release builds (-ldflags "-X main.version=v1.2.3").
+var version = ""
+
+// versionString reports the release version, or the module version that
+// `go install ...@vX` records, or "dev".
+func versionString() string {
+	if version != "" {
+		return version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return "dev"
+}
 
 func main() {
 	interval := flag.Duration("interval", 400*time.Millisecond, "how often to poll openspec/ for edits")
@@ -37,7 +51,7 @@ func main() {
 		positional, args = append(positional, args[0]), args[1:]
 	}
 	if *showVersion {
-		fmt.Println("lazyopenspec", version)
+		fmt.Println("lazyopenspec", versionString())
 		return
 	}
 

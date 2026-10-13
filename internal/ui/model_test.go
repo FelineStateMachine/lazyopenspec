@@ -180,3 +180,23 @@ func TestSquashedSidePanels(t *testing.T) {
 		t.Errorf("tall section should not squash: %v", got)
 	}
 }
+
+func TestTabWindowKeepsActiveTabVisible(t *testing.T) {
+	m := fixtureModel(t, 120, 40)
+	parts := []string{"proposal.md", "design.md", "tasks.md", "Δ one", "Δ two", "Δ three", "Δ four", "Δ five"}
+	for active := range parts {
+		got := ansi.Strip(m.tabWindow(parts, active, 30))
+		if w := ansi.StringWidth(got); w > 30 {
+			t.Errorf("active %d: %q is %d wide", active, got, w)
+		}
+		if !strings.Contains(got, parts[active]) {
+			t.Errorf("active %d: %q hides the active tab", active, got)
+		}
+	}
+	if got := ansi.Strip(m.tabWindow(parts, 7, 30)); !strings.HasPrefix(got, " ‹ ") {
+		t.Errorf("tabs hidden on the left should be marked: %q", got)
+	}
+	if got := ansi.Strip(m.tabWindow(parts, 0, 30)); !strings.HasSuffix(got, " ›") {
+		t.Errorf("tabs hidden on the right should be marked: %q", got)
+	}
+}

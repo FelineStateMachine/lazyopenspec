@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/FelineStateMachine/lazyopenspec/internal/gitx"
 	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
@@ -352,12 +353,14 @@ func (m Model) tabBar(t target, w int) string {
 	tabs := m.tabsFor(t)
 	cur, _ := m.currentTab(t)
 	var parts []string
-	for _, tb := range tabs {
+	active := 0
+	for i, tb := range tabs {
 		// Style each piece separately: underlined styles re-wrap every rune
 		// and would mangle an already-styled substring.
 		st := th.tabInactive
 		if tb.key == cur.key {
 			st = th.tabActive
+			active = i
 		}
 		part := st.Render(tb.label)
 		if m.now.Sub(tb.mod) < freshWindow {
@@ -368,12 +371,42 @@ func (m Model) tabBar(t target, w int) string {
 		}
 		parts = append(parts, part)
 	}
-	left := " " + strings.Join(parts, th.subtle.Render(" │ "))
 	right := ""
 	if m.diffMode {
 		right = th.modSt.Render("[diff vs HEAD]") + " "
 	}
-	return spread(left, right, w)
+	return spread(m.tabWindow(parts, active, w-lipgloss.Width(right)-1), right, w)
+}
+
+// tabWindow joins as many tabs as fit in w cells, always including the active
+// one, and marks tabs hidden off either edge with an arrow.
+func (m Model) tabWindow(parts []string, active, w int) string {
+	sep := m.theme.subtle.Render(" │ ")
+	join := func(lo, hi int) string {
+		s := " "
+		if lo > 0 {
+			s += m.theme.muted.Render("‹ ")
+		}
+		s += strings.Join(parts[lo:hi], sep)
+		if hi < len(parts) {
+			s += m.theme.muted.Render(" ›")
+		}
+		return s
+	}
+	if len(parts) == 0 {
+		return " "
+	}
+	lo, hi := active, active+1
+	for grew := true; grew; {
+		grew = false
+		if hi < len(parts) && lipgloss.Width(join(lo, hi+1)) <= w {
+			hi, grew = hi+1, true
+		}
+		if lo > 0 && lipgloss.Width(join(lo-1, hi)) <= w {
+			lo, grew = lo-1, true
+		}
+	}
+	return join(lo, hi)
 }
 
 func (m Model) gitMark(path string) string {
