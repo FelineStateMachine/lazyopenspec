@@ -25,15 +25,24 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Watches the openspec/ directory of the repo containing path (default: .).\n\n")
 		flag.PrintDefaults()
 	}
-	flag.Parse()
+	// Accept flags before or after the path: `lazyopenspec ~/repo --follow`.
+	var positional []string
+	for args := os.Args[1:]; ; {
+		_ = flag.CommandLine.Parse(args) // ExitOnError handles failures
+		args = flag.Args()
+		if len(args) == 0 {
+			break
+		}
+		positional, args = append(positional, args[0]), args[1:]
+	}
 	if *showVersion {
 		fmt.Println("lazyopenspec", version)
 		return
 	}
 
 	start := "."
-	if flag.NArg() > 0 {
-		start = flag.Arg(0)
+	if len(positional) > 0 {
+		start = positional[0]
 	}
 	root, err := spec.FindRoot(start)
 	if err != nil {

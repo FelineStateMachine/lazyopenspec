@@ -240,10 +240,6 @@ func (m Model) renderMain(r rect) string {
 	t := m.target()
 	focused := m.focus == panelMain
 
-	if m.showHelp {
-		return box(m.theme, m.theme.title.Render("Keys"), "", m.helpText(w), r.w, r.h, true)
-	}
-
 	var title string
 	var header []string
 	switch {

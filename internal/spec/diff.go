@@ -51,11 +51,15 @@ func Diff(prev, next *Snapshot, now time.Time) []Event {
 
 	prevChanges := indexChanges(prev.Changes)
 	nextChanges := indexChanges(next.Changes)
+	// Only archive entries that are new in this snapshot can explain a change
+	// disappearing; older archives may reuse the same name.
+	prevArchive := indexChanges(prev.Archive)
 	archivedNames := map[string]string{}
 	for _, c := range next.Archive {
-		archivedNames[c.Name] = c.ID
+		if _, old := prevArchive[c.ID]; !old {
+			archivedNames[c.Name] = c.ID
+		}
 	}
-	prevArchive := indexChanges(prev.Archive)
 
 	for _, id := range sortedKeys(nextChanges) {
 		c := nextChanges[id]
@@ -71,10 +75,8 @@ func Diff(prev, next *Snapshot, now time.Time) []Event {
 			continue
 		}
 		if archID, ok := archivedNames[id]; ok {
-			if _, was := prevArchive[archID]; !was {
-				emit(EventArchived, ItemArchive, archID, "", "archived")
-				continue
-			}
+			emit(EventArchived, ItemArchive, archID, "", "archived")
+			continue
 		}
 		emit(EventRemoved, ItemChange, id, "", "change removed")
 	}

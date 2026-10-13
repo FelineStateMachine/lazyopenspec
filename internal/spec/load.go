@@ -214,7 +214,8 @@ func classify(rel string) ArtifactKind {
 	case "tasks.md":
 		return KindTasks
 	}
-	if strings.HasPrefix(rel, "specs/") && strings.HasSuffix(rel, "/spec.md") {
+	// The CLI reads deltas only from specs/<capability>/spec.md.
+	if dir, ok := strings.CutPrefix(rel, "specs/"); ok && strings.Count(dir, "/") == 1 && strings.HasSuffix(dir, "/spec.md") {
 		return KindDelta
 	}
 	return KindOther

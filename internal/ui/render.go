@@ -19,14 +19,18 @@ func (m Model) render() string {
 	}
 	g := m.geometry()
 	var cols []string
-	if !m.zoom {
+	if m.showHelp {
+		cols = append(cols, box(m.theme, m.theme.title.Render("Keys"), "", m.helpText(m.width-2), m.width, g.main.h, true))
+	} else if !m.zoom {
 		panels := make([]string, 0, numLists)
 		for p := range panelID(numLists) {
 			panels = append(panels, m.renderPanel(p, g.panels[p]))
 		}
 		cols = append(cols, lipgloss.JoinVertical(lipgloss.Left, panels...))
 	}
-	cols = append(cols, m.renderMain(g.main))
+	if !m.showHelp {
+		cols = append(cols, m.renderMain(g.main))
+	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 
 	lines := strings.Split(m.renderHeader()+"\n"+body, "\n")
