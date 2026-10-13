@@ -165,8 +165,10 @@ func (m *Model) syncMain() tea.Cmd {
 		m.vp.SetContent(m.theme.muted.Render(fmt.Sprintf(
 			"\n  No %s/ directory in %s yet.\n  Waiting for one to appear (run `openspec init`).",
 			spec.DirName, m.opts.Root)))
-	case !t.ok || !hasTab:
+	case !t.ok:
 		m.vp.SetContent(m.theme.muted.Render("\n  Nothing selected."))
+	case !hasTab:
+		m.vp.SetContent(m.theme.muted.Render("\n  No artifacts yet. Waiting for proposal.md…"))
 	case m.diffMode:
 		var content string
 		content, cmd = m.diffContent(tb, dirty)
