@@ -5,7 +5,7 @@ split while agents work. It shows each change's artifacts, task progress, and sp
 activity feed of what was touched.
 
 ```
- lazyopenspec  │  /private/tmp/los-shot  │   main +1 uncommitted  │  5 active, 1 rea… FOLLOW  │  ● last edit just now
+ lazyopenspec  │  ~/developer/tally  │   main +1 uncommitted  │  5 active, 1 rea… FOLLOW  │  ● last edit just now
 ╭─[1] Changes──────────────────────────────╮╭─Change harden-session-security─────────────────────────────────────────╮
 │   add-csv-export-filters PDST ▰▰▰▰▰   8/8││ harden-session-security                   spec-driven  edited just now │
 │   add-due-dates          PDST ▱▱▱▱▱      ││ A September penetration test flagged our 30-day idle sessions (90 days…│

@@ -3,7 +3,7 @@
 Source of truth: `/Users/dami/.local/lib/node_modules/@fission-ai/openspec` (v1.4.1, Node CLI, `dist/` is plain readable JS).
 Everything below was confirmed by reading `dist/` and running the CLI against the fixture.
 
-Fixture repo: `/Users/dami/.t3/scratch/2026-10-13-id-like-to-build-a-9bb5a1f9/fixture` (git, 7 commits, backdated history).
+Fixture repo: `testdata/fixture` (copied without its git history).
 Full raw CLI outputs: `fixture/cli-samples/*.json` (committed).
 
 ---
