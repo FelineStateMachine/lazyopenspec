@@ -221,9 +221,6 @@ func TestDiffNilAndIdentical(t *testing.T) {
 // Re-using a change name after an earlier archive is allowed by the CLI
 // (`new change` only checks changes/<name>, and archive dirs differ by date).
 func TestDiffArchiveWithReusedName(t *testing.T) {
-	t.Log("was BUG: diff.go:55-57 archivedNames maps Name -> ID and is filled from next.Archive (newest-first), so " +
-		"an older archive with the same Name overwrites the new one; the check at diff.go:74 then finds the OLD " +
-		"ID in prevArchive and reports EventRemoved \"change removed\" instead of EventArchived")
 	root := copyFixture(t)
 	changes := filepath.Join(root, "openspec", "changes")
 	touch(t, filepath.Join(changes, "archive", "2026-08-01-add-due-dates", "proposal.md"), "## Why\nFirst attempt.\n")

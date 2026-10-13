@@ -15,11 +15,16 @@ type stamp struct {
 // used to poll for changes without holding a file descriptor per watched file.
 type Fingerprint map[string]stamp
 
-// Scan stats every file under dir. A missing dir yields an empty fingerprint.
+// Scan stats every file and directory under dir, so a new empty change
+// directory is noticed too. A missing dir yields an empty fingerprint.
 func Scan(dir string) Fingerprint {
 	fp := Fingerprint{}
 	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			fp[path] = stamp{} // presence only; dir mtimes churn on temp files
 			return nil
 		}
 		fi, err := d.Info()

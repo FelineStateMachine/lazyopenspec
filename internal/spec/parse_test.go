@@ -180,8 +180,6 @@ func TestParseDelta(t *testing.T) {
 // require the "### Requirement:" part. Verified: `openspec show <change>
 // --json` reports deltaCount 0 for this input.
 func TestParseDeltaRenamedNeedsFromToPair(t *testing.T) {
-	t.Log("was BUG: parse.go:18 renameFromRe `(?i)^\\s*-?\\s*FROM:` counts every FROM-ish line under RENAMED " +
-		"(orphan FROM without TO, prose like \"- From: ...\"), so ParseDelta reports Renamed=2 where the CLI reports 0")
 	src := md("## RENAMED Requirements", "",
 		"- FROM: `### Requirement: Password login`",
 		"- From: the old wording was ambiguous")
@@ -194,9 +192,6 @@ func TestParseDeltaRenamedNeedsFromToPair(t *testing.T) {
 // fence with the same marker character and at least the same length, so a
 // ``` block nested inside a ~~~ (or ````) block stays masked.
 func TestParseNestedFenceStaysMasked(t *testing.T) {
-	t.Log("was BUG: parse.go:29 lines() toggles inFence on ANY ``` or ~~~ line, so an inner ``` inside a ~~~ " +
-		"(or ````) block un-masks the example; ParseSpec/ParseDelta count the fenced \"### Requirement:\" " +
-		"(spec: 2 vs CLI `spec list` requirementCount 1)")
 	example := []string{"~~~markdown", "```", "### Requirement: Fake inside nested fence", "#### Scenario: fake", "```", "~~~"}
 	spec := md(append([]string{"# S", "## Purpose", "p", "## Requirements", "### Requirement: Real", "The system SHALL x.", "#### Scenario: s"}, example...)...)
 	if got := ParseSpec(spec); got.Requirements != 1 || got.Scenarios != 1 {
@@ -294,8 +289,6 @@ func TestParseSpec(t *testing.T) {
 // later "## Notes" section is a validation ERROR and is not counted.
 // Verified: `openspec spec list --json` reports requirementCount 1 here.
 func TestParseSpecIgnoresRequirementsOutsideRequirementsSection(t *testing.T) {
-	t.Log("was BUG: parse.go:108 ParseSpec counts every \"### Requirement:\" header in the file regardless of section, " +
-		"so a stray header under \"## Notes\" gives 2 where `openspec spec list` reports 1")
 	src := md("# T", "## Purpose", "p", "## Requirements", "### Requirement: Real", "The system SHALL x.",
 		"## Notes", "### Requirement: Stray", "The system SHALL not count this.")
 	if got := ParseSpec(src); got.Requirements != 1 {
@@ -339,8 +332,6 @@ func TestParseSummary(t *testing.T) {
 }
 
 func TestParseSummaryKeepsLeadingBold(t *testing.T) {
-	t.Log("was BUG: parse.go:135 strings.TrimLeft(text, \"-*> \") strips a cutset, not a bullet prefix, so a Why line " +
-		"starting with bold markdown loses its opening ** and becomes \"Security:** sessions last too long.\"")
 	src := md("## Why", "", "**Security:** sessions last too long.")
 	if got, want := ParseSummary(src), "**Security:** sessions last too long."; got != want {
 		t.Errorf("ParseSummary() = %q, want %q", got, want)
@@ -375,8 +366,6 @@ func TestParseSchema(t *testing.T) {
 }
 
 func TestParseSchemaStripsInlineComment(t *testing.T) {
-	t.Log("was BUG: parse.go:153 ParseSchema does not strip YAML inline comments, so " +
-		"\"schema: spec-driven # default\" yields \"spec-driven # default\" (the CLI's YAML parser yields \"spec-driven\")")
 	if got := ParseSchema("schema: spec-driven # default\n"); got != "spec-driven" {
 		t.Errorf("ParseSchema() = %q, want %q", got, "spec-driven")
 	}

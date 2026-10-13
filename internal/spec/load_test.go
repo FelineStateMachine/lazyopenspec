@@ -337,9 +337,6 @@ func TestLoadSkipsDotDirsAndArchiveWithoutDatePrefix(t *testing.T) {
 // parseDeltaSpecs iterates directories under specs/). Verified:
 // `openspec show <change> --json` reports deltaCount 0 for this layout.
 func TestLoadDeltaNeedsCapabilityDir(t *testing.T) {
-	t.Log("was BUG: load.go:217 classify treats \"specs/spec.md\" as KindDelta because it has the \"specs/\" prefix " +
-		"and \"/spec.md\" suffix; the artifact gets Capability \"spec.md\" (label \"Δ spec.md\") and its " +
-		"requirements are counted in Deltas, while the CLI ignores files without a capability dir")
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "openspec", "changes", "loose", "specs", "spec.md"),
 		"## ADDED Requirements\n### Requirement: Loose\nThe system SHALL x.\n")
