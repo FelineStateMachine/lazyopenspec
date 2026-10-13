@@ -1,6 +1,6 @@
 # OpenSpec 1.4.1 on-disk format (for lazyopenspec)
 
-Source of truth: `/Users/dami/.local/lib/node_modules/@fission-ai/openspec` (v1.4.1, Node CLI, `dist/` is plain readable JS).
+Source of truth: the `@fission-ai/openspec` npm package (v1.4.1, Node CLI, `dist/` is plain readable JS).
 Everything below was confirmed by reading `dist/` and running the CLI against the fixture.
 
 Fixture repo: `testdata/fixture` (copied without its git history).
