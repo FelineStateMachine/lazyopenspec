@@ -44,6 +44,7 @@ type Options struct {
 	Root     string
 	Interval time.Duration
 	Follow   bool
+	Portrait PortraitMode // stack panels above the main pane: auto, always, never
 }
 
 type (
@@ -79,6 +80,7 @@ type Model struct {
 	diffMode      bool
 	zoom          bool
 	showHelp      bool
+	portraitMode  PortraitMode
 
 	snap     *spec.Snapshot
 	fp       spec.Fingerprint
@@ -110,16 +112,17 @@ func New(opts Options) Model {
 	vp := viewport.New()
 	vp.MouseWheelEnabled = false // the root model routes wheel events
 	return Model{
-		opts:     opts,
-		theme:    newTheme(true),
-		follow:   opts.Follow,
-		vp:       vp,
-		tabs:     map[string]string{},
-		scroll:   map[string]int{},
-		renderer: newMDRenderer(),
-		diffs:    map[string]diffMsg{},
-		diffReq:  map[string]bool{},
-		now:      time.Now(),
+		opts:         opts,
+		theme:        newTheme(true),
+		follow:       opts.Follow,
+		portraitMode: opts.Portrait,
+		vp:           vp,
+		tabs:         map[string]string{},
+		scroll:       map[string]int{},
+		renderer:     newMDRenderer(),
+		diffs:        map[string]diffMsg{},
+		diffReq:      map[string]bool{},
+		now:          time.Now(),
 	}
 }
 
@@ -440,6 +443,14 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "z":
 		m.zoom = !m.zoom
 		m.clampAll()
+	case "v":
+		// Flip the current layout; this pins it until toggled again.
+		if m.portrait() {
+			m.portraitMode = PortraitNever
+		} else {
+			m.portraitMode = PortraitAlways
+		}
+		m.clampAll()
 	case "r":
 		m.loading = true
 		return tea.Batch(m.loadCmd(), m.refreshGit())
@@ -455,6 +466,7 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 
 func (m *Model) setFocus(p panelID) {
 	m.focus = p
+	defer m.clampAll() // squashed panel heights depend on focus
 	if p < numLists && p != panelActivity {
 		m.lastList = p
 	}

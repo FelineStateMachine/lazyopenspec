@@ -18,20 +18,26 @@ func (m Model) render() string {
 		return ""
 	}
 	g := m.geometry()
-	var cols []string
-	if m.showHelp {
-		cols = append(cols, box(m.theme, m.theme.title.Render("Keys"), "", m.helpText(m.width-2), m.width, g.main.h, true))
-	} else if !m.zoom {
+	var body string
+	switch {
+	case m.showHelp:
+		body = box(m.theme, m.theme.title.Render("Keys"), "", m.helpText(g.body.w-2), g.body.w, g.body.h, true)
+	case m.zoom:
+		body = m.renderMain(g.main)
+	default:
 		panels := make([]string, 0, numLists)
 		for p := range panelID(numLists) {
-			panels = append(panels, m.renderPanel(p, g.panels[p]))
+			if r := g.panels[p]; r.h > 0 {
+				panels = append(panels, m.renderPanel(p, r))
+			}
 		}
-		cols = append(cols, lipgloss.JoinVertical(lipgloss.Left, panels...))
+		side := lipgloss.JoinVertical(lipgloss.Left, panels...)
+		if g.portrait {
+			body = lipgloss.JoinVertical(lipgloss.Left, side, m.renderMain(g.main))
+		} else {
+			body = lipgloss.JoinHorizontal(lipgloss.Top, side, m.renderMain(g.main))
+		}
 	}
-	if !m.showHelp {
-		cols = append(cols, m.renderMain(g.main))
-	}
-	body := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
 
 	lines := strings.Split(m.renderHeader()+"\n"+body, "\n")
 	if len(lines) > m.height-footerRows {
@@ -130,6 +136,7 @@ func (m Model) helpText(w int) string {
 		{"f", "follow mode: jump to whatever the agents touch next"},
 		{"s", "sort changes by name / most recently edited"},
 		{"z", "zoom main pane"},
+		{"v", "toggle vertical stack (portrait) layout"},
 		{"c", "clear activity log"},
 		{"r", "force reload"},
 		{"q", "quit"},

@@ -19,6 +19,7 @@ var version = "dev"
 func main() {
 	interval := flag.Duration("interval", 400*time.Millisecond, "how often to poll openspec/ for edits")
 	follow := flag.Bool("follow", false, "start in follow mode (jump to whatever changes)")
+	portrait := flag.String("portrait", "auto", "stack panels above the main pane like lazygit's portraitMode: auto (when <=84 cols and >=46 rows), always, never")
 	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: lazyopenspec [flags] [path]\n\n")
@@ -40,6 +41,12 @@ func main() {
 		return
 	}
 
+	portraitMode, ok := ui.ParsePortraitMode(*portrait)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "lazyopenspec: --portrait must be auto, always, or never (got %q)\n", *portrait)
+		os.Exit(2)
+	}
+
 	start := "."
 	if len(positional) > 0 {
 		start = positional[0]
@@ -50,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := tea.NewProgram(ui.New(ui.Options{Root: root, Interval: *interval, Follow: *follow}))
+	p := tea.NewProgram(ui.New(ui.Options{Root: root, Interval: *interval, Follow: *follow, Portrait: portraitMode}))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "lazyopenspec:", err)
 		os.Exit(1)

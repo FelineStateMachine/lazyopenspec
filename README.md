@@ -45,6 +45,7 @@ lazyopenspec                 # finds openspec/ in the current dir or any parent
 lazyopenspec ~/code/repo     # or point it at a repo
 lazyopenspec --follow        # start in follow mode
 lazyopenspec --interval 1s   # poll less often (default 400ms)
+lazyopenspec --portrait always   # always stack panels above the main pane (auto | always | never)
 ```
 
 Requires Go 1.27+. `git` is optional: without it, the uncommitted markers and diff view are unavailable.
@@ -77,6 +78,7 @@ Git is run with `GIT_OPTIONAL_LOCKS=0`, so the viewer never holds `.git/index.lo
 | `f` | follow mode: jump to the item and file the agents touch next |
 | `s` | sort changes by name / most recently edited |
 | `z` | zoom the main pane |
+| `v` | toggle the vertical stack (portrait) layout |
 | `e` | open the current file in `$VISUAL` / `$EDITOR` |
 | `c` | clear the activity feed |
 | `r` | force reload |
@@ -84,6 +86,16 @@ Git is run with `GIT_OPTIONAL_LOCKS=0`, so the viewer never holds `.git/index.lo
 | `q` | quit |
 
 Mouse: wheel scrolls the pane under the pointer, and clicking selects a row.
+
+## Vertical stack (portrait) mode
+
+Works like lazygit's `portraitMode`. In a tall, narrow pane (84 columns or fewer and 46 rows or more, lazygit's
+defaults), the list panels stack on top and take a third of the height, and the main pane gets the rest at full
+width. `--portrait always|never` overrides the auto rule, and `v` flips the layout while it runs.
+
+When the panels are short on space, which is the usual case when stacked, lazygit's accordion behavior applies: the
+focused panel expands and the others shrink to their selected row, or to just their title if space is very tight.
+Tab between panels to expand each one in turn.
 
 ## How it watches
 

@@ -44,9 +44,9 @@ func key(s string) tea.KeyPressMsg {
 
 // Every frame must be exactly the terminal size, at any size, in any panel.
 func TestViewFitsTerminal(t *testing.T) {
-	for _, size := range [][2]int{{160, 45}, {80, 24}, {40, 10}, {20, 5}, {3, 2}, {1, 1}} {
+	for _, size := range [][2]int{{160, 45}, {80, 24}, {84, 46}, {60, 90}, {40, 10}, {20, 5}, {3, 2}, {1, 1}} {
 		m := fixtureModel(t, size[0], size[1])
-		for _, k := range []string{"", "tab", "j", "]", "z", "?", "x", "2", "enter", "d"} {
+		for _, k := range []string{"", "tab", "j", "]", "z", "?", "x", "2", "enter", "d", "v", "tab", "v"} {
 			if k != "" {
 				m = step(t, m, key(k))
 			}
@@ -108,5 +108,75 @@ func TestAllocateFillsTotal(t *testing.T) {
 		if sum != total {
 			t.Errorf("total %d: allocated %d (%v)", total, sum, rows)
 		}
+	}
+}
+
+func TestPortraitAuto(t *testing.T) {
+	// lazygit's defaults: portrait when width <= 84 and height >= 46.
+	tests := []struct {
+		w, h int
+		want bool
+	}{
+		{84, 46, true},
+		{60, 120, true},
+		{85, 46, false},
+		{84, 45, false},
+		{160, 45, false},
+	}
+	for _, tt := range tests {
+		if got := fixtureModel(t, tt.w, tt.h).geometry().portrait; got != tt.want {
+			t.Errorf("%dx%d: portrait = %v, want %v", tt.w, tt.h, got, tt.want)
+		}
+	}
+	m := fixtureModel(t, 160, 45)
+	m.portraitMode = PortraitAlways
+	if !m.geometry().portrait {
+		t.Error("always: not portrait at 160x45")
+	}
+	m = fixtureModel(t, 60, 120)
+	m.portraitMode = PortraitNever
+	if m.geometry().portrait {
+		t.Error("never: portrait at 60x120")
+	}
+}
+
+func TestPortraitStacksPanelsAboveMain(t *testing.T) {
+	m := fixtureModel(t, 80, 62) // body 60: side 20, main 40
+	g := m.geometry()
+	if g.main.x != 0 || g.main.w != 80 || g.main.y != headerRows+20 || g.main.h != 40 {
+		t.Errorf("main = %+v, want full width below a 20-row side section", g.main)
+	}
+	y := headerRows
+	for p, r := range g.panels {
+		if r.x != 0 || r.w != 80 || r.y != y {
+			t.Errorf("panel %d = %+v, want full width at y=%d", p, r, y)
+		}
+		y += r.h
+	}
+	if y != g.main.y {
+		t.Errorf("panels end at y=%d, main starts at %d", y, g.main.y)
+	}
+}
+
+func TestSquashedSidePanels(t *testing.T) {
+	// A 20-row side section is below the normal-layout threshold (22) but
+	// tall enough (>= 16) for 3-row squashed panels, like lazygit.
+	m := fixtureModel(t, 80, 62)
+	if got := m.sideHeights(20); got != [numLists]int{11, 3, 3, 3} {
+		t.Errorf("focused Changes: heights %v", got)
+	}
+	m = step(t, m, key("2"))
+	if got := m.sideHeights(20); got != [numLists]int{3, 11, 3, 3} {
+		t.Errorf("focused Specs: heights %v", got)
+	}
+	m = step(t, m, key("0")) // main focused: Specs still drives it and stays open
+	if got := m.sideHeights(20); got != [numLists]int{3, 11, 3, 3} {
+		t.Errorf("main focused: heights %v", got)
+	}
+	if got := m.sideHeights(12); got != [numLists]int{1, 9, 1, 1} {
+		t.Errorf("short section: heights %v, want title-only squashed panels", got)
+	}
+	if got := m.sideHeights(40); got[0] < 4 || got[1] < 4 {
+		t.Errorf("tall section should not squash: %v", got)
 	}
 }
