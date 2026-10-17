@@ -1,4 +1,4 @@
-module github.com/FelineStateMachine/lazyopenspec
+module src.rest/cat/lazyopenspec
 
 go 1.27.1
 

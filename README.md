@@ -9,7 +9,7 @@ changes, task progress, and spec deltas update as files land on disk, with a run
 ## Install
 
 ```sh
-go install github.com/FelineStateMachine/lazyopenspec@latest   # needs Go 1.27+
+go install src.rest/cat/lazyopenspec@latest   # needs Go 1.27+
 ```
 
 Or download a binary for macOS, Linux, or Windows from

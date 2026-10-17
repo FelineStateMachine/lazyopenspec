@@ -11,8 +11,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
-	"github.com/FelineStateMachine/lazyopenspec/internal/ui"
+	"src.rest/cat/lazyopenspec/internal/spec"
+	"src.rest/cat/lazyopenspec/internal/ui"
 )
 
 // version is set by release builds (-ldflags "-X main.version=v1.2.3").

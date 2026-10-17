@@ -10,8 +10,8 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/FelineStateMachine/lazyopenspec/internal/gitx"
-	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
+	"src.rest/cat/lazyopenspec/internal/gitx"
+	"src.rest/cat/lazyopenspec/internal/spec"
 )
 
 // target is the item shown in the main pane.

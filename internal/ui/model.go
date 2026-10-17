@@ -12,8 +12,8 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/FelineStateMachine/lazyopenspec/internal/gitx"
-	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
+	"src.rest/cat/lazyopenspec/internal/gitx"
+	"src.rest/cat/lazyopenspec/internal/spec"
 )
 
 type panelID int

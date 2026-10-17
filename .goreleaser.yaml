@@ -32,4 +32,4 @@ changelog:
 
 release:
   footer: |
-    Install with Go: `go install github.com/FelineStateMachine/lazyopenspec@{{ .Tag }}`
+    Install with Go: `go install src.rest/cat/lazyopenspec@{{ .Tag }}`

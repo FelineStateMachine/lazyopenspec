@@ -9,7 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/FelineStateMachine/lazyopenspec/internal/spec"
+	"src.rest/cat/lazyopenspec/internal/spec"
 )
 
 func fixtureModel(t *testing.T, w, h int) Model {
