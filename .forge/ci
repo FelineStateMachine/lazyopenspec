@@ -1,0 +1,6 @@
+#!/bin/sh
+# CI for src.rest: make check (gofmt, go vet, staticcheck, go test -race) and
+# make build, the same steps as the GitHub workflow's check job.
+set -eu
+make check
+make build
